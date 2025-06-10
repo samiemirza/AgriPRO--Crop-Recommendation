@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AgriPro — Home</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Helvetica, sans-serif;
+      background-color: #f3f3f3;
+      overflow-x: hidden;
+    }
+
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background-color: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      z-index: 1000;
+    }
+
+    .header-content {
+      width: 100%;
+      max-width: 100%;
+      padding: 18px 5%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+    }
+
+    .logo {
+      height: 60px;
+      margin-right: 20px;
+    }
+
+    .brand {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .header-right {
+      display: flex;
+      gap: 24px;
+    }
+
+    .nav-link {
+      text-decoration: none;
+      color: #333;
+      font-size: 1rem;
+      font-weight: 500;
+      transition: color 0.2s ease-in-out;
+    }
+
+    .nav-link:hover {
+      color: #28a745;
+    }
+
+    .hero-image {
+      margin-top: 100px;
+      width: 100%;
+      max-height: 500px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .card-container {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin: 40px auto;
+      padding: 0 5%;
+    }
+
+    .info-card {
+      background-color: white;
+      flex: 1;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
+      text-align: center;
+      transition: transform 0.2s ease;
+    }
+
+    .info-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .info-card .text-section {
+      padding: 30px 20px;
+    }
+
+    .info-card h2 {
+      font-size: 1.6rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #111;
+    }
+
+    .info-card p {
+      font-size: 1rem;
+      color: #555;
+      margin-bottom: 20px;
+    }
+
+    .info-card a.button {
+      display: inline-block;
+      padding: 12px 28px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #28a745;
+      background-color: transparent;
+      border: 2px solid #28a745;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+
+    .info-card a.button:hover {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .info-card img {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-content">
+      <div class="header-left">
+        <img src="/static/assets/logo.png" alt="Logo" class="logo">
+        
+      </div>
+      <nav class="header-right">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/predict" class="nav-link">Predict</a>
+        <a href="/about" class="nav-link">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- TOP IMAGE -->
+  <img src="/static/assets/farm-banner.jpg" alt="Farm Landscape" class="hero-image">
+
+  <!-- APPLE STYLE DOUBLE CARD -->
+  <div class="card-container">
+    <!-- About -->
+    <div class="info-card">
+      <div class="text-section">
+        <h2>About AgriPro</h2>
+        <p>Learn how AgriPro uses AI to empower smarter agriculture.</p>
+        <a href="/about" class="button">Learn More</a>
+      </div>
+      <img src="/static/assets/about.jpg" alt="About Image">
+    </div>
+
+    <!-- Predict -->
+    <div class="info-card">
+      <div class="text-section">
+        <h2>Start Predicting</h2>
+        <p>Input your land conditions and discover which crops are best for your field.</p>
+        <a href="/predict" class="button">Try Now</a>
+      </div>
+      <img src="/static/assets/predict.jpg" alt="Predict Image">
+    </div>
+  </div>
+
+</body>
+</html>
+
+
