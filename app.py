@@ -1,113 +1,98 @@
 from flask import Flask, request, jsonify, render_template
-import os
+import joblib
+import json
 import requests
-import pandas as pd
 import numpy as np
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.multioutput import MultiOutputRegressor
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
+
+# --- DeepSeek/OpenRouter API Key (keep secure!) ---
+OPENROUTER_API_KEY = "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"
 
 app = Flask(__name__)
 
-# ✅ OpenRouter API Key (for DeepSeek routing)
-OPENROUTER_API_KEY = "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"
+# --- Load Models, Encoders, Feature List at Startup ---
+clf = joblib.load('model_classifier.pkl')
+reg = joblib.load('model_regressor.pkl')
+encoders = joblib.load('encoder.pkl')
+with open('features.json') as f:
+    FEATURES = json.load(f)
 
-# Load dataset
-df = pd.read_csv("crop_yield_dataset.csv")
-df = df[df["Crop_Yield"] > 0]
+# --- Crop Months Lookup (for rotation logic) ---
+CROP_MONTHS = {
+    'wheat':      (11, 4),
+    'corn':       (2, 7),
+    'rice':       (6, 10),
+    'barley':     (10, 3),
+    'soybean':    (6, 10),
+    'cotton':     (4, 10),
+    'sugarcane':  (2, 11),
+    'tomato':     (8, 11),
+    'potato':     (10, 1),
+    'sunflower':  (1, 5)
+}
 
-# Binning functions
-def bin_temperature(temp):
-    if temp <= 10: return 'very_low'
-    elif temp <= 20: return 'low'
-    elif temp <= 30: return 'moderate'
-    elif temp <= 35: return 'high'
-    return 'very_high'
+# --- Preprocess incoming data for model ---
+def preprocess_input(input_dict):
+    # Follow order in features.json!
+    row = []
+    for feat in FEATURES:
+        if feat == 'Soil_Type':
+            val = encoders['soil_type'].transform([input_dict['Soil_Type'].strip()])[0]
+        elif feat == 'Soil_Quality_Class':
+            val = encoders['soil_quality'].transform([input_dict['Soil_Quality_Class'].strip().lower()])[0]
+        else:
+            val = float(input_dict[feat])
+        row.append(val)
+    return [row]
 
-def bin_humidity(h):
-    if h <= 30: return 'very_low'
-    elif h <= 50: return 'low'
-    elif h <= 70: return 'moderate'
-    elif h <= 85: return 'high'
-    return 'very_high'
+# --- Predict Top Crops and their Expected Yields ---
+def recommend_crops(input_dict, top_n=3):
+    X = preprocess_input(input_dict)
+    # Predict probabilities for each crop (classifier), yields for each (regressor)
+    class_probs = clf.predict_proba(X)[0]
+    # Handle if only one class (rare, edge case)
+    if class_probs.ndim == 0:
+        class_probs = np.array([1.0])
+    # Crop labels and names
+    crop_labels = list(range(len(class_probs)))
+    crop_names = encoders['crop_type'].inverse_transform(crop_labels)
+    # Regression (yield prediction for each crop, one-by-one)
+    yields = []
+    for i, crop_label in enumerate(crop_labels):
+        X_crop = X.copy()
+        X_crop = np.array(X_crop)
+        # Swap in this crop as label for prediction, or you may need a custom logic if your regressor is multi-output
+        # (If regressor predicts yield for a given input/crop)
+        yields.append(reg.predict(X)[0])  # Placeholder for generic regressor, else adjust as needed
 
-def bin_ph(ph):
-    if ph <= 5.5: return 'very_low'
-    elif ph <= 6.5: return 'low'
-    elif ph <= 7.5: return 'moderate'
-    elif ph <= 8.5: return 'high'
-    return 'very_high'
+    # Rank crops by classifier probability (not yield! unless you want by yield)
+    crops_ranked = sorted(zip(crop_names, class_probs, yields), key=lambda x: x[1], reverse=True)
+    recommendations = []
+    for i, (crop, prob, yld) in enumerate(crops_ranked[:top_n]):
+        recommendations.append({
+            "crop": crop,
+            "expected_yield_maund_per_acre": round(yld, 2),
+            "probability": round(prob, 3)
+        })
+    return recommendations
 
-def bin_soil_quality(sq):
-    if sq <= 2: return 'very_low'
-    elif sq <= 4: return 'low'
-    elif sq <= 6: return 'moderate'
-    elif sq <= 8: return 'high'
-    return 'very_high'
-
-# Apply binning and train model
-df['Temperature_Bin'] = df['Temperature'].apply(bin_temperature)
-df['Humidity_Bin'] = df['Humidity'].apply(bin_humidity)
-df['Soil_pH_Bin'] = df['Soil_pH'].apply(bin_ph)
-df['Soil_Quality_Bin'] = df['Soil_Quality'].apply(bin_soil_quality)
-df = pd.get_dummies(df, columns=['Crop_Type'])
-
-features = ['Soil_Type', 'Temperature_Bin', 'Humidity_Bin', 'Soil_pH_Bin', 'Soil_Quality_Bin', 'Wind_Speed', 'N', 'P', 'K']
-target_cols = [col for col in df.columns if col.startswith('Crop_Type_')]
-
-X = df[features]
-y = df[target_cols]
-
-categorical_features = ['Soil_Type', 'Temperature_Bin', 'Humidity_Bin', 'Soil_pH_Bin', 'Soil_Quality_Bin']
-numeric_features = ['Wind_Speed', 'N', 'P', 'K']
-
-preprocessor = ColumnTransformer([
-    ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features),
-    ('num', 'passthrough', numeric_features)
-])
-
-model = Pipeline([
-    ('prep', preprocessor),
-    ('multi_gbr', MultiOutputRegressor(
-        GradientBoostingRegressor(n_estimators=100, learning_rate=0.1, random_state=42)
-    ))
-])
-model.fit(X, y)
-
-# Prediction logic
-def get_top_crops(input_data):
-    input_df = pd.DataFrame([input_data])
-    input_df['Temperature_Bin'] = input_df['Temperature'].apply(bin_temperature)
-    input_df['Humidity_Bin'] = input_df['Humidity'].apply(bin_humidity)
-    input_df['Soil_pH_Bin'] = input_df['Soil_pH'].apply(bin_ph)
-    input_df['Soil_Quality_Bin'] = input_df['Soil_Quality'].apply(bin_soil_quality)
-    processed_input = input_df[features]
-    predicted = model.predict(processed_input)[0]
-    results = dict(zip(target_cols, predicted))
-    top3 = sorted(results.items(), key=lambda x: x[1], reverse=True)[:3]
-    return [(k.replace("Crop_Type_", ""), round(v, 2)) for k, v in top3]
-
-# DeepSeek prompt
-def generate_prompt(input_data, top_crops):
+# --- Explainability: DeepSeek Prompt Logic ---
+def generate_prompt(input_data, recommendations):
     summary = (
-        f"Temperature = {bin_temperature(input_data['Temperature']).replace('_', ' ').title()}, "
-        f"Humidity = {bin_humidity(input_data['Humidity']).replace('_', ' ').title()}, "
-        f"Soil pH = {bin_ph(input_data['Soil_pH']).replace('_', ' ').title()}, "
-        f"Soil Quality = {bin_soil_quality(input_data['Soil_Quality']).replace('_', ' ').title()}, "
+        f"Temperature = {input_data['Temperature']}, "
+        f"Humidity = {input_data['Humidity']}, "
+        f"Soil pH = {input_data['Soil_pH']}, "
+        f"Soil Quality = {input_data['Soil_Quality']}, "
         f"Soil Type = {input_data['Soil_Type']}, "
         f"N = {input_data['N']}, P = {input_data['P']}, K = {input_data['K']}, Wind Speed = {input_data['Wind_Speed']}."
     )
-    crops = ", ".join([name for name, _ in top_crops])
-    return f"Based on the given conditions: {summary} Why are {crops} optimal crop choices for this environment?"
+    crops = ", ".join([rec['crop'] for rec in recommendations])
+    return f"Based on the given conditions: {summary} Why are {crops} optimal crop choices for this environment in Pakistan?"
 
 def query_openrouter(prompt):
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json"
     }
-
     payload = {
         "model": "deepseek/deepseek-r1:free",
         "messages": [
@@ -117,58 +102,84 @@ def query_openrouter(prompt):
         "temperature": 0.7,
         "max_tokens": 2000
     }
-
-    print("🔼 Prompt being sent to OpenRouter:")
-    print(prompt)
-    print("📦 Payload being sent:")
-    print(payload)
-
     response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
-
-    print("🔽 Status code:", response.status_code)
-    print("🧾 Raw response text:", response.text)
-
     if response.status_code == 200:
         try:
             content = response.json()['choices'][0]['message']['content']
-            print("✅ Parsed content from response:", content)
             return content
-        except Exception as e:
-            print("❌ Error parsing JSON content:", e)
-            print("🧾 Full response JSON:", response.json())
+        except Exception:
             return "⚠️ Could not parse AI reply properly."
     else:
-        raise Exception(f"OpenRouter API Error: {response.status_code} - {response.text}")
+        return f"API Error: {response.status_code}"
+
+# --- Crop Rotation Recommendation ---
+# Basic cereal-legume-others logic
+CROP_GROUPS = {
+    'wheat': 'cereal',
+    'rice': 'cereal',
+    'barley': 'cereal',
+    'corn': 'cereal',
+    'soybean': 'legume',
+    'cotton': 'other',
+    'sugarcane': 'other',
+    'tomato': 'other',
+    'potato': 'other',
+    'sunflower': 'other',
+}
+
+def recommend_rotation(top_crop):
+    this_group = CROP_GROUPS.get(top_crop, 'other')
+    # Prefer different group, else next in list
+    for crop, group in CROP_GROUPS.items():
+        if crop != top_crop and group != this_group:
+            sow, harvest = CROP_MONTHS[crop]
+            return {
+                "next_crop": crop,
+                "sowing_month": sow,
+                "harvesting_month": harvest
+            }
+    # Fallback: any different crop
+    for crop in CROP_MONTHS:
+        if crop != top_crop:
+            sow, harvest = CROP_MONTHS[crop]
+            return {
+                "next_crop": crop,
+                "sowing_month": sow,
+                "harvesting_month": harvest
+            }
+    return {}
 
 
-# Routes
+# --- Flask Routes ---
 @app.route("/")
 def home():
-    return render_template("home.html")  # ⬅ Default route now points to home
+    return render_template("home.html")
 
 @app.route("/predict")
 def predict_page():
-    return render_template("index.html")  # ⬅ Your prediction tool UI
+    return render_template("index.html")
 
 @app.route("/about")
 def about():
     return render_template("about.html")
 
-@app.route("/predict", methods=["POST"])
-def predict():
+@app.route("/recommend", methods=["POST"])
+def recommend():
     try:
         input_data = request.json
-        top_crops = get_top_crops(input_data)
-        prompt = generate_prompt(input_data, top_crops)
-        explanation = query_openrouter(prompt)
+        recommendations = recommend_crops(input_data, top_n=3)
+        prompt = generate_prompt(input_data, recommendations)
+        deepseek_explanation = query_openrouter(prompt)
+        # Crop rotation based on the 1st recommended crop
+        rotation = recommend_rotation(recommendations[0]["crop"])
         return jsonify({
-            "top_crops": top_crops,
-            "prompt": prompt,
-            "deepseek_explanation": explanation
+            "recommendations": recommendations,
+            "deepseek_explanation": deepseek_explanation,
+            "rotation_plan": rotation
         })
     except Exception as e:
+        print("Error in /recommend:", e)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
-

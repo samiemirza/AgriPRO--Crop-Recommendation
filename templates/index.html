@@ -4,17 +4,15 @@
   <meta charset="UTF-8">
   <title>Crop Recommendation System</title>
   <style>
+    /* ... (unchanged styles) ... */
     * {
       box-sizing: border-box;
     }
-
     html, body {
       margin: 0;
       padding: 0;
-      overflow-x: hidden; /* 🧼 prevents horizontal scroll */
+      overflow-x: hidden;
     }
-
-    
     body {
       font-family: Helvetica;
       background-color: #f3f3f3;
@@ -22,7 +20,6 @@
       flex-direction: column;
       align-items: center;
     }
-
     .main-container {
       padding-top: 120px;
       display: flex;
@@ -30,7 +27,6 @@
       width: 100%;
       max-width: 1200px;
     }
-
     .form-container {
       background: #fff;
       padding: 30px;
@@ -38,15 +34,33 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
       width: 300px;
     }
-
-    input {
+    input, select {
       width: 100%;
       padding: 8px;
       margin: 10px 0;
       border-radius: 5px;
       border: 1px solid #ccc;
+      background: #fff;
+      font-size: 1rem;
+      font-family: Helvetica, Arial, sans-serif;
+      box-sizing: border-box;
+      color: #333;
+      outline: none;
+      appearance: none;           /* Remove default browser styling */
+      -webkit-appearance: none;   /* Safari/Chrome */
+      -moz-appearance: none;      /* Firefox */
+      transition: border 0.2s;
     }
-
+    input:focus, select:focus {
+      border: 1.5px solid #28a745;
+    }
+    select {
+      background-image: url("data:image/svg+xml;charset=UTF-8,<svg width='14' height='10' viewBox='0 0 14 10' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M7 10L0.0717975 0.249998L13.9282 0.25L7 10Z' fill='%23333'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 18px 12px;
+      cursor: pointer;
+    }
     button {
       margin-top: 10px;
       padding: 10px 20px;
@@ -56,27 +70,23 @@
       border-radius: 5px;
       cursor: pointer;
     }
-
     button.reset {
       background-color: #dc3545;
       margin-left: 10px;
     }
-
     .right-section {
       flex: 1;
       display: flex;
       flex-direction: column;
       gap: 20px;
     }
-
     .grid-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-    width: 100%;
-    max-width: 600px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      width: 100%;
+      max-width: 600px;
     }
-
     .grid-box {
       width: 100%;
       aspect-ratio: 1 / 1; 
@@ -88,14 +98,11 @@
       justify-content: center;
       align-items: center;
     }
-
     .grid-box img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
-
-
     .placeholder-box {
       height: 440px;
       background: #fff;
@@ -109,7 +116,6 @@
       font-size: 1.2rem;
       color: #555;
     }
-
     .explanation-box {
       margin-top: 40px;
       width: 100%;
@@ -119,7 +125,50 @@
       padding: 25px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-
+    .rotation-box {
+      margin-top: 20px;
+      width: 100%;
+      max-width: 1200px;
+      background: #fff;
+      border-radius: 10px;
+      padding: 40px 25px; /* Larger */
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      min-height: 140px;
+      font-size: 1.15rem;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    #rotation-content {
+      display: flex;
+      align-items: center;
+      margin-top: 15px;
+    }
+    #rotation-content img {
+      width: 90px;
+      height: 90px;
+      border-radius: 10px;
+      object-fit: cover;
+      margin-right: 30px;
+      background: #f3f3f3;
+      box-shadow: 0 0 8px rgba(0,0,0,0.06);
+      flex-shrink: 0;
+    }
+    @media (max-width: 600px) {
+      .rotation-box {
+        flex-direction: column;
+        padding: 20px 10px;
+      }
+      #rotation-content {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      #rotation-content img {
+        margin-bottom: 10px;
+        margin-right: 0;
+      }
+    }
     .header {
       position: fixed;
       top: 0;
@@ -129,7 +178,6 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       z-index: 1000;
     }
-
     .header-content {
       width: 100%;
       max-width: 100%;
@@ -138,24 +186,18 @@
       justify-content: space-between;
       align-items: center;
     }
-
-
     .header-left {
       display: flex;
       align-items: center;
     }
-
     .logo {
       height: 60px;
       margin-right: 20px;
     }
-
-  
     .header-right {
       display: flex;
       gap: 24px;
     }
-
     .nav-link {
       text-decoration: none;
       color: #333;
@@ -164,12 +206,9 @@
       font-family: Helvetica, sans-serif;
       transition: color 0.2s ease-in-out;
     }
-
     .nav-link:hover {
       color: #28a745;
     }
-
-
   </style>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
@@ -186,7 +225,6 @@
   </div>
 </header>
 
-
 <body>
   <div class="main-container">
     <!-- Form -->
@@ -198,6 +236,40 @@
         <input type="number" name="Temperature" placeholder="Temperature (°C)" required>
         <input type="number" name="Humidity" placeholder="Humidity (%)" required>
         <input type="number" name="Soil_Quality" placeholder="Soil Quality (1-10)" required>
+        
+        <!-- Sowing Month Dropdown -->
+        <select name="sowing_month" required>
+          <option value="">Select Sowing Month</option>
+          <option value="1">January</option>
+          <option value="2">February</option>
+          <option value="3">March</option>
+          <option value="4">April</option>
+          <option value="5">May</option>
+          <option value="6">June</option>
+          <option value="7">July</option>
+          <option value="8">August</option>
+          <option value="9">September</option>
+          <option value="10">October</option>
+          <option value="11">November</option>
+          <option value="12">December</option>
+        </select>
+        <!-- Harvesting Month Dropdown -->
+        <select name="harvesting_month" required>
+          <option value="">Select Harvesting Month</option>
+          <option value="1">January</option>
+          <option value="2">February</option>
+          <option value="3">March</option>
+          <option value="4">April</option>
+          <option value="5">May</option>
+          <option value="6">June</option>
+          <option value="7">July</option>
+          <option value="8">August</option>
+          <option value="9">September</option>
+          <option value="10">October</option>
+          <option value="11">November</option>
+          <option value="12">December</option>
+        </select>
+
         <input type="number" name="Wind_Speed" placeholder="Wind Speed (km/h)" required>
         <input type="number" name="N" placeholder="Nitrogen (N)" required>
         <input type="number" name="P" placeholder="Phosphorus (P)" required>
@@ -228,7 +300,23 @@
     <p>Please submit the form to see the explanation.</p>
   </div>
 
+  <!-- Crop Rotation Plan Section -->
+  <div class="rotation-box" id="rotation-box" style="display:none;">
+    <h4>Crop Rotation Plan</h4>
+    <div id="rotation-content">
+      <!-- Rotation info will appear here -->
+    </div>
+  </div>
+
   <script>
+    // Helper for Soil_Quality_Class
+    function classifySoilQuality(val) {
+      if (val > 60) return 'excellent';
+      if (val > 45) return 'good';
+      if (val > 25) return 'average';
+      return 'poor';
+    }
+
     function resetForm() {
       document.getElementById('cropForm').reset();
 
@@ -244,6 +332,10 @@
         <h4>Why These Crops?</h4>
         <p>Please submit the form to see the explanation.</p>
       `;
+
+      // Hide rotation plan
+      document.getElementById('rotation-box').style.display = 'none';
+      document.getElementById('rotation-content').innerHTML = '';
     }
 
     document.getElementById('cropForm').addEventListener('submit', async function(event) {
@@ -251,9 +343,14 @@
 
       const formData = new FormData(this);
       const data = Object.fromEntries(formData.entries());
+
+      // Convert all numeric values
       for (let key in data) {
         if (!isNaN(data[key])) data[key] = parseFloat(data[key]);
       }
+
+      // Add derived fields for backend
+      data['Soil_Quality_Class'] = classifySoilQuality(parseFloat(data['Soil_Quality']));
 
       // Show loading
       document.getElementById('crop-img-1').innerHTML = 'Loading...';
@@ -261,9 +358,11 @@
       document.getElementById('crop-img-3').innerHTML = '';
       document.getElementById('crop-names').innerHTML = '';
       document.getElementById('explanation-box').innerHTML = '<p>Loading explanation...</p>';
+      document.getElementById('rotation-content').innerHTML = '';
+      document.getElementById('rotation-box').style.display = 'none';
 
       try {
-        const response = await fetch("/predict", {
+        const response = await fetch("/recommend", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data)
@@ -272,31 +371,46 @@
         const result = await response.json();
         console.log("Backend Response:", result);
 
-        if (response.ok && result.top_crops) {
-          const crops = result.top_crops;
+        if (response.ok && result.recommendations) {
+          const crops = result.recommendations;
 
           document.getElementById('intro-box').style.display = 'none';
           document.getElementById('cropGrid').style.display = 'grid';
 
           for (let i = 0; i < 3; i++) {
-            const cropName = crops[i][0].toLowerCase();
+            const cropName = crops[i].crop.toLowerCase();
             document.getElementById(`crop-img-${i + 1}`).innerHTML =
               `<img src="/static/assets/${cropName}.png" alt="${cropName} icon">`;
           }
 
           document.getElementById('crop-names').innerHTML = `
             <ul style="text-align:left; list-style:disc; padding: 10px;">
-              ${crops.map(crop => `<li>${crop[0]} — Score: ${crop[1]}</li>`).join("")}
+              ${crops.map(crop => `<li>${crop.crop} — Yield: ${crop.expected_yield_maund_per_acre}</li>`).join("")}
             </ul>
           `;
 
           const explanationHTML = marked.parse(result.deepseek_explanation || "*Explanation not available.*");
+          document.getElementById('explanation-box').innerHTML = `
+            <h4>Why These Crops?</h4>
+            ${explanationHTML}
+          `;
 
-document.getElementById('explanation-box').innerHTML = `
-  <h4>Why These Crops?</h4>
-  ${explanationHTML}
-`;
-
+          // --- Display Crop Rotation Plan with image ---
+          if (result.rotation_plan && result.rotation_plan.next_crop) {
+            const rotationCropImg = result.rotation_plan.next_crop.toLowerCase();
+            document.getElementById('rotation-content').innerHTML = `
+              <img src="/static/assets/${rotationCropImg}.png" alt="${rotationCropImg} icon">
+              <div>
+                <strong>Next Crop:</strong> ${result.rotation_plan.next_crop}<br>
+                <strong>Sowing Month:</strong> ${monthName(result.rotation_plan.sowing_month)}<br>
+                <strong>Harvesting Month:</strong> ${monthName(result.rotation_plan.harvesting_month)}
+              </div>
+            `;
+            document.getElementById('rotation-box').style.display = 'block';
+          } else {
+            document.getElementById('rotation-content').innerHTML = `<em>No crop rotation recommendation available.</em>`;
+            document.getElementById('rotation-box').style.display = 'block';
+          }
         } else {
           document.getElementById('crop-names').innerHTML = `<p style="color:red;">${result.error || "Something went wrong."}</p>`;
         }
@@ -305,11 +419,13 @@ document.getElementById('explanation-box').innerHTML = `
         document.getElementById('crop-names').innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
       }
     });
+
+    // Helper for displaying month names
+    function monthName(num) {
+      const names = [ "", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
+      return names[num] || num;
+    }
   </script>
 </body>
-
 </html>
-
-
-
 
