@@ -4,15 +4,8 @@
   <meta charset="UTF-8">
   <title>Crop Recommendation System</title>
   <style>
-    /* ... (unchanged styles) ... */
-    * {
-      box-sizing: border-box;
-    }
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
-    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; overflow-x: hidden; }
     body {
       font-family: Helvetica;
       background-color: #f3f3f3;
@@ -20,19 +13,46 @@
       flex-direction: column;
       align-items: center;
     }
+
+    /* three‑column layout with reduced side‑margins */
     .main-container {
       padding-top: 120px;
       display: flex;
-      gap: 50px;
-      width: 100%;
-      max-width: 1200px;
+      gap: 20px;
+      width: 95%;
+      max-width: 95%;
+      align-items: flex-start;
     }
+    .form-col {
+      flex: 0 0 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .result-col {
+      flex: 0 0 600px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 20px;
+    }
+    .explanation-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
     .form-container {
       background: #fff;
       padding: 30px;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      width: 300px;
+      width: 100%;
+      min-height: 630px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
     }
     input, select {
       width: 100%;
@@ -42,68 +62,42 @@
       border: 1px solid #ccc;
       background: #fff;
       font-size: 1rem;
-      font-family: Helvetica, Arial, sans-serif;
-      box-sizing: border-box;
-      color: #333;
       outline: none;
-      appearance: none;           /* Remove default browser styling */
-      -webkit-appearance: none;   /* Safari/Chrome */
-      -moz-appearance: none;      /* Firefox */
       transition: border 0.2s;
     }
-    input:focus, select:focus {
-      border: 1.5px solid #28a745;
-    }
+    input:focus, select:focus { border: 1.5px solid #28a745; }
     select {
+      appearance: none;
       background-image: url("data:image/svg+xml;charset=UTF-8,<svg width='14' height='10' viewBox='0 0 14 10' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M7 10L0.0717975 0.249998L13.9282 0.25L7 10Z' fill='%23333'/></svg>");
       background-repeat: no-repeat;
       background-position: right 10px center;
       background-size: 18px 12px;
       cursor: pointer;
     }
+    .form-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+      margin-top: 20px;
+    }
     button {
-      margin-top: 10px;
       padding: 10px 20px;
       border: none;
       background-color: #28a745;
       color: white;
       border-radius: 5px;
       cursor: pointer;
+      font-size: 1.2rem;
+      font-weight: bold;
+      transition: background 0.18s;
+      min-width: 110px;
     }
-    button.reset {
-      background-color: #dc3545;
-      margin-left: 10px;
-    }
-    .right-section {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    .grid-container {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 20px;
+    button.reset { background-color: #dc3545; }
+    button:hover, button.reset:hover { opacity: 0.95; filter: brightness(1.04); }
+
+    .placeholder-box {
       width: 100%;
       max-width: 600px;
-    }
-    .grid-box {
-      width: 100%;
-      aspect-ratio: 1 / 1; 
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      overflow: hidden;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    .grid-box img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .placeholder-box {
       height: 440px;
       background: #fff;
       border-radius: 10px;
@@ -116,29 +110,44 @@
       font-size: 1.2rem;
       color: #555;
     }
-    .explanation-box {
-      margin-top: 40px;
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
       width: 100%;
-      max-width: 1200px;
-      background: #fff;
-      border-radius: 10px;
-      padding: 25px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 600px;
     }
-    .rotation-box {
-      margin-top: 20px;
+    .grid-box {
       width: 100%;
-      max-width: 1200px;
+      aspect-ratio: 1 / 1;
       background: #fff;
       border-radius: 10px;
-      padding: 40px 25px; /* Larger */
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      min-height: 140px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .grid-box img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* reduced vertical padding so it’s shorter and can align with form bottom */
+    .rotation-box {
+      width: 100%;
+      max-width: 600px;
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px 15px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
       font-size: 1.15rem;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
       justify-content: center;
+    }
+    .rotation-box h4 {
+      font-size: 1.5rem;
+      margin-bottom: 14px;
+      font-weight: bold;
     }
     #rotation-content {
       display: flex;
@@ -155,161 +164,188 @@
       box-shadow: 0 0 8px rgba(0,0,0,0.06);
       flex-shrink: 0;
     }
-    @media (max-width: 600px) {
-      .rotation-box {
-        flex-direction: column;
-        padding: 20px 10px;
-      }
-      #rotation-content {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      #rotation-content img {
-        margin-bottom: 10px;
-        margin-right: 0;
-      }
+
+    .explanation-box {
+      background: #fff;
+      border-radius: 10px;
+      padding: 25px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 100%;
     }
+    .explanation-box h4 {
+      font-size: 1.5rem;
+      margin-bottom: 16px;
+      font-weight: bold;
+    }
+
     .header {
       position: fixed;
-      top: 0;
-      left: 0;
+      top: 0; left: 0;
       width: 100%;
       background-color: #fff;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
       z-index: 1000;
     }
+
     .header-content {
-      width: 100%;
-      max-width: 100%;
-      padding: 18px 5%;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 18px 5%;     /* same as your example */
     }
-    .header-left {
-      display: flex;
-      align-items: center;
-    }
+
     .logo {
       height: 60px;
-      margin-right: 20px;
+      /* optional: margin-right: 20px; if you want space before the links */
     }
-    .header-right {
+
+    .header-content nav {
       display: flex;
-      gap: 24px;
+      gap: 24px;            /* same gap as your “card‐container” example */
     }
+
     .nav-link {
       text-decoration: none;
       color: #333;
       font-size: 1rem;
       font-weight: 500;
-      font-family: Helvetica, sans-serif;
       transition: color 0.2s ease-in-out;
     }
     .nav-link:hover {
       color: #28a745;
+    }
+
+
+    @media (max-width: 800px) {
+      .main-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 30px;
+      }
+      .form-col, .result-col, .explanation-col {
+        max-width: 100%;
+      }
+      .form-container, .placeholder-box, .grid-container, .rotation-box {
+        max-width: 100%;
+      }
+    }
+
+    /* ——— Loading spinner styles ——— */
+    .loading-widget {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+    .spinner {
+      border: 8px solid #f3f3f3;
+      border-top: 8px solid #28a745;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <header class="header">
   <div class="header-content">
-    <div class="header-left">
-      <img src="/static/assets/logo.png" alt="Logo" class="logo">
-    </div>
-    <nav class="header-right">
+    <img src="/static/assets/logo.png" alt="Logo" class="logo">
+    <nav>
       <a href="/" class="nav-link">Home</a>
       <a href="/predict" class="nav-link">Predict</a>
       <a href="/about" class="nav-link">About</a>
     </nav>
   </div>
 </header>
-
 <body>
   <div class="main-container">
-    <!-- Form -->
-    <div class="form-container">
-      <h2>Crop Predictor</h2>
-      <form id="cropForm">
-        <input type="text" name="Soil_Type" placeholder="Soil Type" required>
-        <input type="number" name="Soil_pH" placeholder="Soil pH" required>
-        <input type="number" name="Temperature" placeholder="Temperature (°C)" required>
-        <input type="number" name="Humidity" placeholder="Humidity (%)" required>
-        <input type="number" name="Soil_Quality" placeholder="Soil Quality (1-10)" required>
-        
-        <!-- Sowing Month Dropdown -->
-        <select name="sowing_month" required>
-          <option value="">Select Sowing Month</option>
-          <option value="1">January</option>
-          <option value="2">February</option>
-          <option value="3">March</option>
-          <option value="4">April</option>
-          <option value="5">May</option>
-          <option value="6">June</option>
-          <option value="7">July</option>
-          <option value="8">August</option>
-          <option value="9">September</option>
-          <option value="10">October</option>
-          <option value="11">November</option>
-          <option value="12">December</option>
-        </select>
-        <!-- Harvesting Month Dropdown -->
-        <select name="harvesting_month" required>
-          <option value="">Select Harvesting Month</option>
-          <option value="1">January</option>
-          <option value="2">February</option>
-          <option value="3">March</option>
-          <option value="4">April</option>
-          <option value="5">May</option>
-          <option value="6">June</option>
-          <option value="7">July</option>
-          <option value="8">August</option>
-          <option value="9">September</option>
-          <option value="10">October</option>
-          <option value="11">November</option>
-          <option value="12">December</option>
-        </select>
-
-        <input type="number" name="Wind_Speed" placeholder="Wind Speed (km/h)" required>
-        <input type="number" name="N" placeholder="Nitrogen (N)" required>
-        <input type="number" name="P" placeholder="Phosphorus (P)" required>
-        <input type="number" name="K" placeholder="Potassium (K)" required>
-        <button type="submit">Predict</button>
-        <button type="button" class="reset" onclick="resetForm()">Reset</button>
-      </form>
+    <!-- Column 1: Form -->
+    <div class="form-col">
+      <div class="form-container">
+        <h2>Crop Predictor</h2>
+        <form id="cropForm" style="flex:1; display:flex; flex-direction:column;">
+          <input type="text" name="Soil_Type" placeholder="Soil Type" required>
+          <input type="number" name="Soil_pH" placeholder="Soil pH" required>
+          <input type="number" name="Temperature" placeholder="Temperature (°C)" required>
+          <input type="number" name="Humidity" placeholder="Humidity (%)" required>
+          <input type="number" name="Soil_Quality" placeholder="Soil Quality (1-10)" required>
+          <select name="sowing_month" required>
+            <option value="">Select Sowing Month</option>
+            <option value="1">January</option>
+            <option value="2">February</option>
+            <option value="3">March</option>
+            <option value="4">April</option>
+            <option value="5">May</option>
+            <option value="6">June</option>
+            <option value="7">July</option>
+            <option value="8">August</option>
+            <option value="9">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+          </select>
+          <select name="harvesting_month" required>
+            <option value="">Select Harvesting Month</option>
+            <option value="1">January</option>
+            <option value="2">February</option>
+            <option value="3">March</option>
+            <option value="4">April</option>
+            <option value="5">May</option>
+            <option value="6">June</option>
+            <option value="7">July</option>
+            <option value="8">August</option>
+            <option value="9">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+          </select>
+          <input type="number" name="Wind_Speed" placeholder="Wind Speed (km/h)" required>
+          <input type="number" name="N" placeholder="Nitrogen (N)" required>
+          <input type="number" name="P" placeholder="Phosphorus (P)" required>
+          <input type="number" name="K" placeholder="Potassium (K)" required>
+          <div class="form-buttons">
+            <button type="submit">Predict</button>
+            <button type="button" class="reset" onclick="resetForm()">Reset</button>
+          </div>
+        </form>
+      </div>
     </div>
 
-    <!-- Right Display -->
-    <div class="right-section" id="right-section">
+    <!-- Column 2: Predictions + Rotation -->
+    <div class="result-col">
       <div id="intro-box" class="placeholder-box">
-        <p><strong>Welcome!</strong><br>Enter the field conditions on the left to get crop recommendations powered by AI.</p>
+        <p><strong>Welcome!</strong><br>Enter the field conditions to get AI-powered recommendations.</p>
       </div>
-
       <div id="cropGrid" class="grid-container" style="display:none;">
         <div class="grid-box" id="crop-img-1"></div>
         <div class="grid-box" id="crop-img-2"></div>
         <div class="grid-box" id="crop-img-3"></div>
         <div class="grid-box" id="crop-names"></div>
       </div>
+      <div class="rotation-box" id="rotation-box" style="display:none;">
+        <h4>Crop Rotation Plan</h4>
+        <div id="rotation-content"></div>
+      </div>
     </div>
-  </div>
 
-  <!-- Explanation (below everything) -->
-  <div class="explanation-box" id="explanation-box">
-    <h4>Why These Crops?</h4>
-    <p>Please submit the form to see the explanation.</p>
-  </div>
-
-  <!-- Crop Rotation Plan Section -->
-  <div class="rotation-box" id="rotation-box" style="display:none;">
-    <h4>Crop Rotation Plan</h4>
-    <div id="rotation-content">
-      <!-- Rotation info will appear here -->
+    <!-- Column 3: Explanation -->
+    <div class="explanation-col">
+      <div class="explanation-box" id="explanation-box">
+        <h4>Why These Crops?</h4>
+        <p>Please submit the form to see the explanation.</p>
+      </div>
     </div>
   </div>
 
   <script>
-    // Helper for Soil_Quality_Class
+    // Classify soil quality into buckets
     function classifySoilQuality(val) {
       if (val > 60) return 'excellent';
       if (val > 45) return 'good';
@@ -317,115 +353,137 @@
       return 'poor';
     }
 
+    // Reset form & UI to initial state
     function resetForm() {
       document.getElementById('cropForm').reset();
-
-      document.getElementById('crop-img-1').innerHTML = '';
-      document.getElementById('crop-img-2').innerHTML = '';
-      document.getElementById('crop-img-3').innerHTML = '';
-      document.getElementById('crop-names').innerHTML = '';
-
+      ['crop-img-1','crop-img-2','crop-img-3','crop-names']
+        .forEach(id => document.getElementById(id).innerHTML = '');
       document.getElementById('cropGrid').style.display = 'none';
+      document.getElementById('rotation-box').style.display = 'none';
       document.getElementById('intro-box').style.display = 'flex';
-
+      document.getElementById('intro-box').innerHTML = `
+        <p><strong>Welcome!</strong><br>
+        Enter the field conditions to get AI-powered recommendations.</p>`;
       document.getElementById('explanation-box').innerHTML = `
         <h4>Why These Crops?</h4>
-        <p>Please submit the form to see the explanation.</p>
-      `;
-
-      // Hide rotation plan
-      document.getElementById('rotation-box').style.display = 'none';
-      document.getElementById('rotation-content').innerHTML = '';
+        <p>Please submit the form to see the explanation.</p>`;
     }
 
-    document.getElementById('cropForm').addEventListener('submit', async function(event) {
-      event.preventDefault();
+    document.getElementById('cropForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
 
-      const formData = new FormData(this);
-      const data = Object.fromEntries(formData.entries());
-
-      // Convert all numeric values
-      for (let key in data) {
-        if (!isNaN(data[key])) data[key] = parseFloat(data[key]);
+      // Collect form data
+      const data = Object.fromEntries(new FormData(this).entries());
+      for (let k in data) {
+        if (!isNaN(data[k])) data[k] = parseFloat(data[k]);
       }
+      data['Soil_Quality_Class'] = classifySoilQuality(data['Soil_Quality']);
 
-      // Add derived fields for backend
-      data['Soil_Quality_Class'] = classifySoilQuality(parseFloat(data['Soil_Quality']));
-
-      // Show loading
-      document.getElementById('crop-img-1').innerHTML = 'Loading...';
-      document.getElementById('crop-img-2').innerHTML = '';
-      document.getElementById('crop-img-3').innerHTML = '';
-      document.getElementById('crop-names').innerHTML = '';
-      document.getElementById('explanation-box').innerHTML = '<p>Loading explanation...</p>';
-      document.getElementById('rotation-content').innerHTML = '';
+      // Show loading spinner in intro-box
+      document.getElementById('intro-box').style.display = 'flex';
+      document.getElementById('intro-box').innerHTML = `
+        <div class="loading-widget">
+          <div class="spinner"></div>
+          <p>Loading…</p>
+        </div>`;
+      // Hide any previous results
+      document.getElementById('cropGrid').style.display = 'none';
       document.getElementById('rotation-box').style.display = 'none';
+      document.getElementById('explanation-box').innerHTML = `<h4>Why These Crops?</h4>`;
 
       try {
-        const response = await fetch("/recommend", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        // 1) Fetch recommendations + explanation prompt
+        const recRes = await fetch('/recommend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
         });
+        const result = await recRes.json();
 
-        const result = await response.json();
-        console.log("Backend Response:", result);
+        // 2) Kick off explanation stream
+        const streamRes = await fetch('/explanation_stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: result.explanation_prompt })
+        });
+        const reader = streamRes.body.getReader();
 
-        if (response.ok && result.recommendations) {
-          const crops = result.recommendations;
+        // 3) Prepare explanation container before reading
+        document.getElementById('explanation-box').innerHTML = `
+          <h4>Why These Crops?</h4>
+          <div id="explanation-stream" style="visibility:hidden;">
+            <em>Loading explanation…</em>
+          </div>`;
+        const streamElem = document.getElementById('explanation-stream');
+        let full = '';
 
+        // 4) Read first chunk
+        const { done, value } = await reader.read();
+        if (!done) {
+          full += new TextDecoder().decode(value);
+          // Reveal explanation and render first chunk
+          streamElem.style.visibility = 'visible';
+          streamElem.innerHTML = marked.parse(full);
+
+          // Render predictions immediately
           document.getElementById('intro-box').style.display = 'none';
-          document.getElementById('cropGrid').style.display = 'grid';
-
+          const crops = result.recommendations;
           for (let i = 0; i < 3; i++) {
-            const cropName = crops[i].crop.toLowerCase();
-            document.getElementById(`crop-img-${i + 1}`).innerHTML =
-              `<img src="/static/assets/${cropName}.png" alt="${cropName} icon">`;
+            const name = crops[i].crop.toLowerCase();
+            document.getElementById(`crop-img-${i+1}`).innerHTML =
+              `<img src="/static/assets/${name}.png" alt="${name}">`;
           }
-
           document.getElementById('crop-names').innerHTML = `
-            <ul style="text-align:left; list-style:disc; padding: 10px;">
-              ${crops.map(crop => `<li>${crop.crop} — Yield: ${crop.expected_yield_maund_per_acre}</li>`).join("")}
-            </ul>
-          `;
-
-          const explanationHTML = marked.parse(result.deepseek_explanation || "*Explanation not available.*");
-          document.getElementById('explanation-box').innerHTML = `
-            <h4>Why These Crops?</h4>
-            ${explanationHTML}
-          `;
-
-          // --- Display Crop Rotation Plan with image ---
-          if (result.rotation_plan && result.rotation_plan.next_crop) {
-            const rotationCropImg = result.rotation_plan.next_crop.toLowerCase();
-            document.getElementById('rotation-content').innerHTML = `
-              <img src="/static/assets/${rotationCropImg}.png" alt="${rotationCropImg} icon">
-              <div>
-                <strong>Next Crop:</strong> ${result.rotation_plan.next_crop}<br>
-                <strong>Sowing Month:</strong> ${monthName(result.rotation_plan.sowing_month)}<br>
-                <strong>Harvesting Month:</strong> ${monthName(result.rotation_plan.harvesting_month)}
-              </div>
-            `;
-            document.getElementById('rotation-box').style.display = 'block';
-          } else {
-            document.getElementById('rotation-content').innerHTML = `<em>No crop rotation recommendation available.</em>`;
-            document.getElementById('rotation-box').style.display = 'block';
-          }
-        } else {
-          document.getElementById('crop-names').innerHTML = `<p style="color:red;">${result.error || "Something went wrong."}</p>`;
+            <ul style="text-align:left; list-style:disc; padding:10px;">
+              ${crops.map(c =>
+                `<li>${c.crop} — Yield: ${c.expected_yield_maund_per_acre}</li>`
+              ).join('')}
+            </ul>`;
+          document.getElementById('cropGrid').style.display = 'grid';
         }
+
+        // 5) Continue streaming the rest
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          full += new TextDecoder().decode(value);
+          streamElem.innerHTML = marked.parse(full);
+          streamElem.scrollTop = streamElem.scrollHeight;
+        }
+
+        // 6) After stream ends, show rotation plan
+        const rot = result.rotation_plan;
+        const rc = rot.next_crop ? rot.next_crop.toLowerCase() : null;
+        document.getElementById('rotation-content').innerHTML = rc
+          ? `<img src="/static/assets/${rc}.png" alt="${rc}">
+            <div>
+              <strong>Next Crop:</strong> ${rot.next_crop}<br>
+              <strong>Sowing Month:</strong> ${monthName(rot.sowing_month)}<br>
+              <strong>Harvesting Month:</strong> ${monthName(rot.harvesting_month)}
+            </div>`
+          : `<em>No crop rotation recommendation available.</em>`;
+        document.getElementById('rotation-box').style.display = 'block';
+
       } catch (err) {
         console.error(err);
-        document.getElementById('crop-names').innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+        document.getElementById('intro-box').innerHTML =
+          `<p style="color:red;">Error: ${err.message}</p>`;
       }
     });
 
-    // Helper for displaying month names
-    function monthName(num) {
-      const names = [ "", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ];
-      return names[num] || num;
+    // Helper to convert month number to name
+    function monthName(n) {
+      return [
+        '', 'January','February','March','April','May','June',
+        'July','August','September','October','November','December'
+      ][n] || n;
     }
   </script>
-</body>
-</html>
+
+
+
+
+
+
+
 

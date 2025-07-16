@@ -1,12 +1,14 @@
-from flask import Flask, request, jsonify, render_template
+import os
+from flask import Flask, request, jsonify, render_template, Response, stream_with_context
 import joblib
 import json
 import requests
 import numpy as np
+from dotenv import load_dotenv
 
-# --- DeepSeek/OpenRouter API Key (keep secure!) ---
-OPENROUTER_API_KEY = "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"
+load_dotenv()
 
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 app = Flask(__name__)
 
 # --- Load Models, Encoders, Feature List at Startup ---
@@ -16,7 +18,6 @@ encoders = joblib.load('encoder.pkl')
 with open('features.json') as f:
     FEATURES = json.load(f)
 
-# --- Crop Months Lookup (for rotation logic) ---
 CROP_MONTHS = {
     'wheat':      (11, 4),
     'corn':       (2, 7),
@@ -30,9 +31,7 @@ CROP_MONTHS = {
     'sunflower':  (1, 5)
 }
 
-# --- Preprocess incoming data for model ---
 def preprocess_input(input_dict):
-    # Follow order in features.json!
     row = []
     for feat in FEATURES:
         if feat == 'Soil_Type':
@@ -44,27 +43,18 @@ def preprocess_input(input_dict):
         row.append(val)
     return [row]
 
-# --- Predict Top Crops and their Expected Yields ---
 def recommend_crops(input_dict, top_n=3):
     X = preprocess_input(input_dict)
-    # Predict probabilities for each crop (classifier), yields for each (regressor)
     class_probs = clf.predict_proba(X)[0]
-    # Handle if only one class (rare, edge case)
     if class_probs.ndim == 0:
         class_probs = np.array([1.0])
-    # Crop labels and names
     crop_labels = list(range(len(class_probs)))
     crop_names = encoders['crop_type'].inverse_transform(crop_labels)
-    # Regression (yield prediction for each crop, one-by-one)
     yields = []
     for i, crop_label in enumerate(crop_labels):
         X_crop = X.copy()
         X_crop = np.array(X_crop)
-        # Swap in this crop as label for prediction, or you may need a custom logic if your regressor is multi-output
-        # (If regressor predicts yield for a given input/crop)
-        yields.append(reg.predict(X)[0])  # Placeholder for generic regressor, else adjust as needed
-
-    # Rank crops by classifier probability (not yield! unless you want by yield)
+        yields.append(reg.predict(X)[0])  # If you have per-crop regression, adjust logic here
     crops_ranked = sorted(zip(crop_names, class_probs, yields), key=lambda x: x[1], reverse=True)
     recommendations = []
     for i, (crop, prob, yld) in enumerate(crops_ranked[:top_n]):
@@ -75,7 +65,6 @@ def recommend_crops(input_dict, top_n=3):
         })
     return recommendations
 
-# --- Explainability: DeepSeek Prompt Logic ---
 def generate_prompt(input_data, recommendations):
     summary = (
         f"Temperature = {input_data['Temperature']}, "
@@ -88,7 +77,8 @@ def generate_prompt(input_data, recommendations):
     crops = ", ".join([rec['crop'] for rec in recommendations])
     return f"Based on the given conditions: {summary} Why are {crops} optimal crop choices for this environment in Pakistan?"
 
-def query_openrouter(prompt):
+# --- Streaming DeepSeek via OpenRouter ---
+def stream_openrouter(prompt):
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json"
@@ -100,20 +90,29 @@ def query_openrouter(prompt):
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.7,
-        "max_tokens": 2000
+        "max_tokens": 2000,
+        "stream": True
     }
-    response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload)
-    if response.status_code == 200:
-        try:
-            content = response.json()['choices'][0]['message']['content']
-            return content
-        except Exception:
-            return "⚠️ Could not parse AI reply properly."
-    else:
-        return f"API Error: {response.status_code}"
+    with requests.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        headers=headers,
+        json=payload,
+        stream=True,
+        timeout=60
+    ) as r:
+        for line in r.iter_lines():
+            if line and line.startswith(b"data: "):
+                chunk = line[len(b"data: "):].decode("utf-8")
+                if chunk.strip() == "[DONE]":
+                    break
+                try:
+                    # For OpenAI-style response
+                    content = json.loads(chunk)["choices"][0]["delta"].get("content", "")
+                    if content:
+                        yield content
+                except Exception:
+                    continue
 
-# --- Crop Rotation Recommendation ---
-# Basic cereal-legume-others logic
 CROP_GROUPS = {
     'wheat': 'cereal',
     'rice': 'cereal',
@@ -129,7 +128,6 @@ CROP_GROUPS = {
 
 def recommend_rotation(top_crop):
     this_group = CROP_GROUPS.get(top_crop, 'other')
-    # Prefer different group, else next in list
     for crop, group in CROP_GROUPS.items():
         if crop != top_crop and group != this_group:
             sow, harvest = CROP_MONTHS[crop]
@@ -138,7 +136,6 @@ def recommend_rotation(top_crop):
                 "sowing_month": sow,
                 "harvesting_month": harvest
             }
-    # Fallback: any different crop
     for crop in CROP_MONTHS:
         if crop != top_crop:
             sow, harvest = CROP_MONTHS[crop]
@@ -148,7 +145,6 @@ def recommend_rotation(top_crop):
                 "harvesting_month": harvest
             }
     return {}
-
 
 # --- Flask Routes ---
 @app.route("/")
@@ -169,17 +165,33 @@ def recommend():
         input_data = request.json
         recommendations = recommend_crops(input_data, top_n=3)
         prompt = generate_prompt(input_data, recommendations)
-        deepseek_explanation = query_openrouter(prompt)
-        # Crop rotation based on the 1st recommended crop
         rotation = recommend_rotation(recommendations[0]["crop"])
         return jsonify({
             "recommendations": recommendations,
-            "deepseek_explanation": deepseek_explanation,
+            "explanation_prompt": prompt,
             "rotation_plan": rotation
         })
     except Exception as e:
         print("Error in /recommend:", e)
         return jsonify({"error": str(e)}), 500
 
+@app.route("/explanation_stream", methods=["POST"])
+def explanation_stream():
+    try:
+        data = request.json
+        if not data:
+            return Response("Error: No JSON data provided", mimetype='text/plain')
+        prompt = data.get("prompt")
+        if not prompt:
+            return Response("Error: No prompt provided", mimetype='text/plain')
+        def generate():
+            for chunk in stream_openrouter(prompt):
+                yield chunk
+        return Response(stream_with_context(generate()), mimetype='text/plain')
+    except Exception as e:
+        print("Error in /explanation_stream:", e)
+        return Response("Error: " + str(e), mimetype='text/plain')
+
 if __name__ == "__main__":
     app.run(debug=True)
+
