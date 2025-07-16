@@ -7,14 +7,9 @@ WORKDIR /app
 # Copy requirements.txt first (for caching pip install)
 COPY requirements.txt ./
 
-# Install your dependencies, matching your local versions
+# Install dependencies from requirements.txt
 RUN pip install --upgrade pip \
- && pip install \
-    scikit-learn==1.4.0 \
-    joblib==1.4.2 \
-    gunicorn \
-    flask
-    # ^^^ Add any other dependencies your app needs
+ && pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of your code, including .pkl model files
 COPY . .
